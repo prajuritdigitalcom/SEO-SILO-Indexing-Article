@@ -168,7 +168,7 @@ Sediakan:
 2. Entitas Utama & Entitas Pendukung (LSI / semantic entities).
 3. Pertanyaan Kunci yang wajib dijawab agar pembaca puas (Satisfying Information Experience).
 4. Scope Boundaries (Included Scope vs Excluded Scope yang ditangani halaman tetangga).
-5. Struktur Artikel Hirarkis (1x H1, 4-8x H2, dan H3 bila relevan). Setiap seksi wajib memiliki sectionId unik, heading, level, purpose, mustExplain[], questions[], entities[], evidenceRequirements[], dan internalLinks[].
+5. Struktur Artikel Hirarkis (1x H1, 6-9x H2, dan H3 bila relevan (target total artikel 3.000 kata atau lebih, sehingga cakupan topik harus luas dan mendalam)). Setiap seksi wajib memiliki sectionId unik, heading, level, purpose, mustExplain[], questions[], entities[], evidenceRequirements[], dan internalLinks[]. Rancang outline agar memuat sudut pembahasan yang beragam dan tidak saling mengulang, misalnya: definisi dan konteks, cara kerja atau alasan di baliknya, kriteria memilih, langkah praktis berurutan, kesalahan umum dan cara menghindarinya, perbandingan opsi, batasan atau kapan opsi tidak cocok, dan satu seksi pertanyaan yang sering diajukan (FAQ) yang menjawab pertanyaan pembaca. Gunakan hanya sudut yang relevan dengan peran halaman (page role) ini dan tidak melanggar excludedScope. Jangan menambah seksi hanya untuk memperpanjang.
 6. Rekomendasi Bukti Lapangan / Evidence Requirements (misal: foto asli, lembar uji, kriteria penilaian).
 7. Peluang Tautan Internal (Target page, Anchor text alami, Konteks penempatan).
 8. Rekomendasi Penggunaan Snippet Referensi (recommendedReferenceUsage: list of { snippetId, relevanceReason } yang relevan dengan topik halaman ini).

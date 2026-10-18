@@ -218,7 +218,7 @@ export function buildReadyToPastePrompt(
     lines.push(`QUALITY GUARDRAILS (GOOGLE PEOPLE-FIRST):`);
     lines.push(`1. Jangan melakukan keyword stuffing. Tulis kalimat secara alami dan mudah dibaca.`);
     lines.push(`2. Jangan mengarang pengalaman langsung, sertifikasi palsu, data uji buatan, atau klaim tanpa dasar.`);
-    lines.push(`3. Fokus pada pemenuhan kebutuhan pembaca. Panjang artikel mengikuti aturan minimal 2.000 kata, dicapai lewat kedalaman isi, bukan kalimat berbelit-belit.`);
+    lines.push(`3. Fokus pada pemenuhan kebutuhan pembaca. Artikel harus panjang dan komprehensif (minimal 2.000 kata, target isi inti 3.000 sampai 3.500 kata), dicapai lewat kedalaman isi yang berguna, bukan kalimat berbelit-belit atau pengulangan.`);
     lines.push(`4. Sajikan struktur yang rapi, poin-poin yang mudah discan, serta penjelasan rasional.`);
     lines.push(`5. Pertimbangkan apakah halaman ini memerlukan disclosure penggunaan AI/otomasi sesuai kebijakan Google Search Central tentang transparansi konten (di luar cakupan generate ini — keputusan publikasi ada di tangan Anda).`);
     if (data.peopleFirstQualityGuidance.length > 0) {
@@ -235,12 +235,25 @@ export function buildReadyToPastePrompt(
   }
 
   // 3.4 & 3.6 ATURAN WAJIB PENULISAN ARTIKEL (NON-NEGOTIABLE)
-  const sectionCount = sectionsToInclude.length > 0 ? sectionsToInclude.length : 6;
-  const perSection = Math.ceil(2200 / sectionCount);
+  const MIN_TOTAL_WORDS = 2000;     // batas mutlak total
+  const CORE_MIN_WORDS = 2400;      // batas minimal isi inti (di luar seksi referensi)
+  const CORE_TARGET_LOW = 3000;     // target isi inti
+  const CORE_TARGET_HIGH = 3500;
+  const h2Sections = sectionsToInclude.filter((s) => s.level === 'H2').length;
+  const sectionCount = h2Sections > 0 ? h2Sections : (sectionsToInclude.length > 0 ? sectionsToInclude.length : 7);
+  // Anggaran per seksi H2 (sudah termasuk H3 di bawahnya)
+  const perSection = Math.ceil(((CORE_TARGET_LOW + CORE_TARGET_HIGH) / 2) / sectionCount);
 
   lines.push(`ATURAN WAJIB PENULISAN ARTIKEL (NON-NEGOTIABLE):`);
   lines.push(`1. TABEL: Jika artikel memuat tabel, jumlah kolom MAKSIMAL 3 (maksimal 3 elemen <th> pada header dan maksimal 3 elemen <td> pada setiap baris). Jumlah baris bebas. Jika data memerlukan lebih dari 3 kolom, pecah menjadi beberapa tabel atau ubah menjadi daftar/paragraf. Jangan memakai colspan/rowspan untuk menyiasati batas ini.`);
-  lines.push(`2. PANJANG ARTIKEL: Artikel WAJIB berisi MINIMAL 2.000 kata (hitung teks isi artikel saja, tanpa tag HTML). Targetkan 2.200 sampai 2.600 kata agar aman. Sasaran per seksi H2 sekitar ${perSection} kata. Tujuannya menghindari thin content. Tambahkan panjang HANYA lewat kedalaman yang berguna: penjelasan yang lebih rinci, langkah, pertimbangan, kesalahan umum, perbandingan, dan contoh yang didukung materi referensi. DILARANG menambah panjang dengan pengulangan, kalimat pengisi, atau parafrase isi yang sama.`);
+  lines.push(`2. PANJANG DAN KEDALAMAN ARTIKEL:`);
+  lines.push(`   - Batas mutlak: total artikel minimal ${MIN_TOTAL_WORDS} kata (hitung teks isi saja, tanpa tag HTML).`);
+  lines.push(`   - Target: isi inti artikel (di luar seksi referensi outbound bila ada) ${CORE_TARGET_LOW} sampai ${CORE_TARGET_HIGH} kata, dengan batas minimal ${CORE_MIN_WORDS} kata. Sasaran tiap seksi H2 sekitar ${perSection} kata (sudah termasuk H3 di dalamnya).`);
+  lines.push(`   - Tulis sebagai panduan lengkap yang membahas topik dari beberapa sudut, sehingga pembaca tidak perlu mencari sumber lain untuk memahami topik halaman ini.`);
+  lines.push(`   - Cara menambah kedalaman yang DIIZINKAN: definisi dan konteks; alasan atau cara kerja di balik suatu hal; kriteria memilih; langkah praktis berurutan; kesalahan umum beserta cara menghindarinya; perbandingan opsi (tabel maksimal 3 kolom); pertimbangan bersyarat ("jika kondisinya X, maka yang perlu diperhatikan Y"); batasan dan kapan suatu opsi tidak cocok; pertanyaan yang sering diajukan.`);
+  lines.push(`   - DILARANG menambah panjang dengan pengulangan, parafrase isi yang sama, kalimat pengisi, pembukaan atau penutup bertele-tele, atau pernyataan umum tanpa informasi baru. Setiap paragraf baru harus membawa informasi atau sudut pandang baru.`);
+  lines.push(`   - DILARANG mengarang angka, data, studi, spesifikasi, sumber, atau pengalaman pribadi demi menambah panjang. Gunakan hanya materi referensi yang diberikan dan pengetahuan umum yang aman.`);
+  lines.push(`   - Tulis artikel LENGKAP dalam satu respons. Jangan meringkas, jangan memotong, jangan memakai placeholder seperti "(lanjutkan di sini)", dan jangan berhenti sebelum semua seksi dan paragraf penutup selesai.`);
   lines.push(`3. TAUTAN MENYATU: Semua tautan di dalam artikel (internal maupun outbound) harus menyatu dengan alur bacaan:`);
   lines.push(`   - Letakkan tautan di dalam kalimat yang topiknya benar-benar nyambung dengan halaman tujuan. Kalimat harus tetap utuh dan masuk akal walaupun tautannya dihapus.`);
   lines.push(`   - Anchor text harus deskriptif, alami, dan relevan dengan topik halaman tujuan (boleh berupa frasa dari kata kunci halaman tujuan, variasi alaminya, atau frasa deskriptif sepanjang 2 sampai 6 kata).`);
@@ -285,7 +298,7 @@ export function buildReadyToPastePrompt(
   lines.push(`Preserve every important fact, figure, name, specification, source-supported claim, and selected requirement from the research.`);
   lines.push(`The article should feel like a knowledgeable human thought carefully about the topic and then explained it clearly.\n`);
   lines.push(`SEBELUM MENGELUARKAN OUTPUT FINAL:`);
-  lines.push(`Tulis draf secara internal. Sebelum menampilkan hasil, periksa satu per satu: (1) jumlah kata minimal 2.000; jika kurang, perdalam seksi yang paling tipis sampai terpenuhi; (2) semua tautan pada blok TAUTAN WAJIB sudah ada, masing-masing sesuai jumlah yang ditentukan, dengan href persis; (3) tidak ada tautan lain di luar daftar wajib dan daftar opsional; (4) tidak ada tabel dengan lebih dari 3 kolom; (5) setiap tautan menyatu dengan kalimatnya dan anchor-nya bervariasi. Revisi semua yang melanggar. Hanya tampilkan versi final yang sudah direvisi, tanpa draf, tanpa catatan pemeriksaan.\n`);
+  lines.push(`Tulis draf secara internal. Sebelum menampilkan hasil, periksa satu per satu: (1) total kata minimal 2.000 dan isi inti (di luar seksi referensi) minimal 2.400 kata, dengan target 3.000 sampai 3.500 kata; jika kurang, perdalam seksi H2 yang paling tipis dengan teknik kedalaman yang diizinkan (bukan pengulangan) sampai terpenuhi; (2) semua tautan pada blok TAUTAN WAJIB sudah ada, masing-masing sesuai jumlah yang ditentukan, dengan href persis; (3) tidak ada tautan lain di luar daftar wajib dan daftar opsional; (4) tidak ada tabel dengan lebih dari 3 kolom; (5) setiap tautan menyatu dengan kalimatnya dan anchor-nya bervariasi. Revisi semua yang melanggar. Hanya tampilkan versi final yang sudah direvisi, tanpa draf, tanpa catatan pemeriksaan.\n`);
 
   // OUTPUT FORMAT BLOCK (CLEAN SEMANTIC HTML)
   lines.push(`OUTPUT FORMAT:`);
@@ -301,7 +314,8 @@ export function buildReadyToPastePrompt(
   lines.push(`- Tables must have at most 3 columns.`);
   lines.push(`- Use <a href="..."> for all internal and outbound links, naturally embedded in paragraph text.`);
   lines.push(`- Never place links inside headings or table cells.`);
-  lines.push(`- The article must contain at least 2,000 words of body text.`);
+  lines.push(`- The article must contain at least 2,000 words in total. The core article (excluding the outbound reference section) should be 3,000 to 3,500 words and never below 2,400 words.`);
+  lines.push(`- Write the complete article in a single response. Do not summarize, truncate, or use placeholders.`);
   lines.push(`- Use <figure>, <img>, and <figcaption> only when valid image URLs are supplied.`);
   lines.push(`- Never invent image URLs.`);
   lines.push(`- Do not output Markdown.`);
