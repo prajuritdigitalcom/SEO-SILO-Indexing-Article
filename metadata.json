@@ -1,0 +1,8 @@
+{
+  "name": "SILO SEO Indexing Article",
+  "description": "Susun arsitektur SEO, topic cluster, SILO, struktur artikel, dan prompt siap pakai untuk membangun konten yang lebih terarah.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
