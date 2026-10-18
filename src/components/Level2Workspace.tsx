@@ -22,6 +22,7 @@ import {
   BookOpen,
   CheckCircle2,
   Link,
+  ExternalLink,
 } from 'lucide-react';
 import { SeoMetadataPanel } from './SeoMetadataPanel';
 
@@ -585,6 +586,98 @@ export const Level2Workspace: React.FC<Level2WorkspaceProps> = ({
               })}
             </div>
           </div>
+
+          {/* Tautan Wajib SILO Panel (Read-Only) */}
+          {level2Data.linkPlan && (
+            <div className="bg-white rounded-2xl border border-[#F1DDE2] p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#F1DDE2] pb-2">
+                <div className="flex items-center gap-2">
+                  <Link className="w-4 h-4 text-[#FE4C6F]" />
+                  <h3 className="font-bold text-sm text-[#1F1720]">Tautan Wajib SILO</h3>
+                </div>
+                <span className="px-2 py-0.5 bg-[#FFE8EE] text-[#E83E60] font-bold text-[10px] rounded-md">
+                  Selalu masuk prompt
+                </span>
+              </div>
+
+              {level2Data.linkPlan.websiteUrlMissing && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    URL Website belum diisi di Level 1, tautan internal memakai path relatif (/slug). Isi URL Website agar tautan memakai URL lengkap.
+                  </span>
+                </div>
+              )}
+
+              {level2Data.linkPlan.role === 'pillar' ? (
+                <div className="space-y-3 text-xs">
+                  <p className="text-[#6F6670]">
+                    Artikel pilar wajib menautkan semua artikel pendukung berikut ({level2Data.linkPlan.supportingTargets?.length || 0} tautan). Outbound link tidak dimasukkan ke artikel pilar.
+                  </p>
+                  <div className="space-y-1.5">
+                    {level2Data.linkPlan.supportingTargets && level2Data.linkPlan.supportingTargets.length > 0 ? (
+                      level2Data.linkPlan.supportingTargets.map((target, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 bg-[#FFF9FA] border border-[#F1DDE2] rounded-xl flex flex-wrap items-center justify-between gap-2"
+                        >
+                          <span className="font-bold text-[#1F1720]">
+                            {idx + 1}. {target.title}
+                          </span>
+                          <span className="font-mono text-[11px] text-[#FE4C6F]">
+                            {target.url}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[#6F6670] italic">Belum ada artikel pendukung untuk ditautkan.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <span className="font-bold text-[#1F1720] block mb-1">
+                      Wajib menautkan ke artikel pilar:
+                    </span>
+                    {level2Data.linkPlan.pillar ? (
+                      <div className="p-2.5 bg-[#FFF9FA] border border-[#F1DDE2] rounded-xl flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-bold text-[#1F1720]">
+                          {level2Data.linkPlan.pillar.title}
+                        </span>
+                        <span className="font-mono text-[11px] text-[#FE4C6F]">
+                          {level2Data.linkPlan.pillar.url}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-[#6F6670] italic">Artikel pilar tidak ditemukan dalam SILO.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="font-bold text-[#1F1720] block mb-1">
+                      Outbound link jatah artikel ini ({level2Data.linkPlan.outboundLinks.length}):
+                    </span>
+                    {level2Data.linkPlan.outboundLinks.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {level2Data.linkPlan.outboundLinks.map((url, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2 bg-[#FFF9FA] border border-[#F1DDE2] rounded-lg font-mono text-[11px] text-[#1F1720] flex items-center gap-2 break-all"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-[#FE4C6F] shrink-0" />
+                            <span>{url}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[#6F6670] italic">Tidak ada jatah outbound link untuk artikel ini.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Section 5: Internal Link Opportunities */}
           {level2Data.internalLinkOpportunities.length > 0 && (

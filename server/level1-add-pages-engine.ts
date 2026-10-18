@@ -36,7 +36,6 @@ export interface AddPagesFromKeywordsInput {
   location?: string;
   authorExpertise?: string;
   referenceText?: string;
-  writingVoiceSample?: string;
   websiteUrl?: string;
   existingSiloPages: ExistingSiloPageContext[];
   existingClusters: ExistingClusterContext[];
@@ -99,7 +98,6 @@ export async function generateSiloPagesFromKeywords(
     location,
     authorExpertise,
     referenceText = '',
-    writingVoiceSample = '',
     websiteUrl = '',
     existingSiloPages,
     existingClusters,

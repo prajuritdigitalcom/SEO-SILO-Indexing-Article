@@ -132,9 +132,27 @@ export function buildReadyToPastePrompt(
     lines.push(`(Catatan: Poin-poin di atas adalah data/fakta resmi yang telah diverifikasi dan relevan untuk halaman ini. Gunakan fakta dan angka ini secara akurat dalam konten tanpa mengubah nilainya atau mengarang klaim tambahan).\n`);
   }
 
-  if (checkboxes.internalLinks && data.internalLinkOpportunities.length > 0) {
-    lines.push(`REKOMENDASI TAUTAN INTERNAL (INTERNAL LINKING):`);
-    data.internalLinkOpportunities.forEach((link) => {
+  // 3.2 Tautan Internal Kontekstual Tambahan (Opsional)
+  let filteredInternalLinks = data.internalLinkOpportunities || [];
+  if (data.linkPlan) {
+    if (data.linkPlan.role === 'pillar') {
+      filteredInternalLinks = [];
+    } else {
+      const pillarSlug = data.linkPlan.pillar?.slug?.toLowerCase();
+      const pillarTitle = data.linkPlan.pillar?.title?.toLowerCase();
+      filteredInternalLinks = filteredInternalLinks.filter((link) => {
+        const linkSlug = link.targetSlug?.toLowerCase();
+        const linkTitle = link.targetPage?.toLowerCase();
+        if (pillarSlug && linkSlug === pillarSlug) return false;
+        if (pillarTitle && linkTitle === pillarTitle) return false;
+        return true;
+      });
+    }
+  }
+
+  if (checkboxes.internalLinks && filteredInternalLinks.length > 0) {
+    lines.push(`TAUTAN INTERNAL KONTEKSTUAL TAMBAHAN (OPSIONAL):`);
+    filteredInternalLinks.forEach((link) => {
       const href =
         data.websiteUrl && link.targetSlug
           ? `${data.websiteUrl}/${link.targetSlug}`
@@ -153,11 +171,54 @@ export function buildReadyToPastePrompt(
     lines.push(``);
   }
 
+  // 3.3 Blok TAUTAN WAJIB (Selalu Masuk bila linkPlan tersedia)
+  if (data.linkPlan) {
+    if (data.linkPlan.role === 'pillar') {
+      const targets = data.linkPlan.supportingTargets || [];
+      lines.push(`TAUTAN WAJIB (NON-NEGOTIABLE) — ARTIKEL PILAR:`);
+      lines.push(`Artikel ini adalah ARTIKEL PILAR dari sebuah SILO. Artikel WAJIB memuat tautan ke SETIAP artikel pendukung di bawah ini, total ${targets.length} tautan.`);
+      lines.push(`Aturan:`);
+      lines.push(`- Setiap artikel pendukung ditautkan TEPAT SATU KALI. Tidak boleh ada yang terlewat dan tidak boleh ada duplikat.`);
+      lines.push(`- Gunakan href persis seperti tertulis. Jangan diubah, dipendekkan, atau diganti.`);
+      lines.push(`- Tempatkan tiap tautan di bagian artikel yang topiknya paling dekat dengan cakupan artikel pendukung tersebut (lihat kolom "Cakupan").`);
+      lines.push(`- DILARANG menaruh semua tautan sekaligus dalam satu daftar di akhir artikel. Sebar di dalam paragraf pada seksi yang relevan.`);
+      lines.push(`- Artikel pilar TIDAK BOLEH memuat tautan ke website luar (outbound link). Semua tautan hanya ke artikel pendukung di bawah.`);
+      lines.push(`Daftar artikel pendukung:`);
+      targets.forEach((t, idx) => {
+        lines.push(`${idx + 1}. Judul: "${t.title}" | href: ${t.url} | Kata kunci: ${t.focusKeyword} | Cakupan: ${t.scopeSummary || t.title}`);
+      });
+      lines.push(``);
+    } else {
+      const outbound = data.linkPlan.outboundLinks || [];
+      lines.push(`TAUTAN WAJIB (NON-NEGOTIABLE) — ARTIKEL PENDUKUNG:`);
+      if (data.linkPlan.pillar) {
+        lines.push(`A. Tautan ke ARTIKEL PILAR (WAJIB):`);
+        lines.push(`   Judul pilar: "${data.linkPlan.pillar.title}" | href: ${data.linkPlan.pillar.url} | Kata kunci: ${data.linkPlan.pillar.focusKeyword}`);
+        lines.push(`   - Tautkan minimal 1 kali, maksimal 2 kali. Letakkan tautan pertama di paruh awal artikel (maksimal sebelum seksi H2 ketiga).`);
+        lines.push(`   - href persis seperti tertulis.`);
+      }
+      lines.push(`B. OUTBOUND LINK (WAJIB dimasukkan SEMUA, total ${outbound.length} link):`);
+      if (outbound.length > 0) {
+        outbound.forEach((url, idx) => {
+          lines.push(`   ${idx + 1}. ${url}`);
+        });
+        lines.push(`   Aturan:`);
+        lines.push(`   - Setiap URL dimasukkan TEPAT SATU KALI, href persis seperti tertulis (jangan diubah, jangan ditambah parameter, jangan dipendekkan).`);
+        lines.push(`   - Jangan menambahkan atribut rel="nofollow", rel="sponsored", atau rel="ugc". Gunakan <a href="..." target="_blank" rel="noopener">.`);
+        lines.push(`   - Jangan mengarang isi halaman tujuan. Anda tidak dapat membuka URL tersebut. Tentukan topik tautan HANYA dari kata-kata pada URL (domain dan slug), lalu tulis kalimat pengantar yang netral dan relevan (misalnya "sebagai bacaan lanjutan tentang ..."), tanpa klaim spesifik tentang isi halaman tujuan.`);
+        lines.push(`   - Sebar outbound link di seksi yang berbeda. Jangan menumpuk lebih dari 1 outbound link dalam satu paragraf.`);
+      } else {
+        lines.push(`   Artikel ini tidak memiliki jatah outbound link. Jangan menambahkan tautan ke website luar apa pun.`);
+      }
+      lines.push(`   Jangan menambahkan outbound link lain di luar daftar ini.\n`);
+    }
+  }
+
   if (checkboxes.qualityGuidance) {
     lines.push(`QUALITY GUARDRAILS (GOOGLE PEOPLE-FIRST):`);
     lines.push(`1. Jangan melakukan keyword stuffing. Tulis kalimat secara alami dan mudah dibaca.`);
     lines.push(`2. Jangan mengarang pengalaman langsung, sertifikasi palsu, data uji buatan, atau klaim tanpa dasar.`);
-    lines.push(`3. Fokus pada pemenuhan kebutuhan pembaca, bukan jumlah kata berbelit-belit.`);
+    lines.push(`3. Fokus pada pemenuhan kebutuhan pembaca. Panjang artikel mengikuti aturan minimal 2.000 kata, dicapai lewat kedalaman isi, bukan kalimat berbelit-belit.`);
     lines.push(`4. Sajikan struktur yang rapi, poin-poin yang mudah discan, serta penjelasan rasional.`);
     lines.push(`5. Pertimbangkan apakah halaman ini memerlukan disclosure penggunaan AI/otomasi sesuai kebijakan Google Search Central tentang transparansi konten (di luar cakupan generate ini — keputusan publikasi ada di tangan Anda).`);
     if (data.peopleFirstQualityGuidance.length > 0) {
@@ -173,11 +234,19 @@ export function buildReadyToPastePrompt(
     lines.push(``);
   }
 
-  // P1 (§4.7): Contoh Gaya Tulisan Asli (Writing Voice Sample)
-  if (data.writingVoiceSample && data.writingVoiceSample.trim().length > 0) {
-    lines.push(`CONTOH GAYA TULISAN YANG HARUS DITIRU (bukan untuk disalin isinya, hanya suara/nada/ritme kalimatnya):`);
-    lines.push(`"""\n${data.writingVoiceSample.trim()}\n"""\n`);
-  }
+  // 3.4 & 3.6 ATURAN WAJIB PENULISAN ARTIKEL (NON-NEGOTIABLE)
+  const sectionCount = sectionsToInclude.length > 0 ? sectionsToInclude.length : 6;
+  const perSection = Math.ceil(2200 / sectionCount);
+
+  lines.push(`ATURAN WAJIB PENULISAN ARTIKEL (NON-NEGOTIABLE):`);
+  lines.push(`1. TABEL: Jika artikel memuat tabel, jumlah kolom MAKSIMAL 3 (maksimal 3 elemen <th> pada header dan maksimal 3 elemen <td> pada setiap baris). Jumlah baris bebas. Jika data memerlukan lebih dari 3 kolom, pecah menjadi beberapa tabel atau ubah menjadi daftar/paragraf. Jangan memakai colspan/rowspan untuk menyiasati batas ini.`);
+  lines.push(`2. PANJANG ARTIKEL: Artikel WAJIB berisi MINIMAL 2.000 kata (hitung teks isi artikel saja, tanpa tag HTML). Targetkan 2.200 sampai 2.600 kata agar aman. Sasaran per seksi H2 sekitar ${perSection} kata. Tujuannya menghindari thin content. Tambahkan panjang HANYA lewat kedalaman yang berguna: penjelasan yang lebih rinci, langkah, pertimbangan, kesalahan umum, perbandingan, dan contoh yang didukung materi referensi. DILARANG menambah panjang dengan pengulangan, kalimat pengisi, atau parafrase isi yang sama.`);
+  lines.push(`3. TAUTAN MENYATU: Semua tautan di dalam artikel (internal maupun outbound) harus menyatu dengan alur bacaan:`);
+  lines.push(`   - Letakkan tautan di dalam kalimat yang topiknya benar-benar nyambung dengan halaman tujuan. Kalimat harus tetap utuh dan masuk akal walaupun tautannya dihapus.`);
+  lines.push(`   - Anchor text harus deskriptif, alami, dan relevan dengan topik halaman tujuan (boleh berupa frasa dari kata kunci halaman tujuan, variasi alaminya, atau frasa deskriptif sepanjang 2 sampai 6 kata).`);
+  lines.push(`   - DILARANG memakai anchor "klik di sini", "baca selengkapnya", "link ini", URL mentah, atau anchor yang sama persis untuk semua tautan. Variasikan anchor antar tautan.`);
+  lines.push(`   - DILARANG menaruh tautan di dalam heading (H1/H2/H3), di dalam sel tabel, atau menumpuk beberapa tautan berurutan dalam satu kalimat.`);
+  lines.push(`   - Tautan tidak boleh terasa seperti sisipan promosi atau daftar tautan yang ditempel di akhir.\n`);
 
   // HUMAN-LIKE EDITORIAL WRITING BLOCK (Lengkap & Anti-AI Slop)
   lines.push(`HUMAN-LIKE EDITORIAL WRITING:`);
@@ -216,7 +285,7 @@ export function buildReadyToPastePrompt(
   lines.push(`Preserve every important fact, figure, name, specification, source-supported claim, and selected requirement from the research.`);
   lines.push(`The article should feel like a knowledgeable human thought carefully about the topic and then explained it clearly.\n`);
   lines.push(`SEBELUM MENGELUARKAN OUTPUT FINAL:`);
-  lines.push(`Tulis draf secara internal terlebih dahulu. Periksa draf tersebut terhadap seluruh aturan di atas satu per satu. Revisi bagian yang masih melanggar. Hanya tampilkan versi final yang sudah direvisi — jangan tampilkan draf awal, catatan pemeriksaan, atau penjelasan proses revisi.\n`);
+  lines.push(`Tulis draf secara internal. Sebelum menampilkan hasil, periksa satu per satu: (1) jumlah kata minimal 2.000; jika kurang, perdalam seksi yang paling tipis sampai terpenuhi; (2) semua tautan pada blok TAUTAN WAJIB sudah ada, masing-masing sesuai jumlah yang ditentukan, dengan href persis; (3) tidak ada tautan lain di luar daftar wajib dan daftar opsional; (4) tidak ada tabel dengan lebih dari 3 kolom; (5) setiap tautan menyatu dengan kalimatnya dan anchor-nya bervariasi. Revisi semua yang melanggar. Hanya tampilkan versi final yang sudah direvisi, tanpa draf, tanpa catatan pemeriksaan.\n`);
 
   // OUTPUT FORMAT BLOCK (CLEAN SEMANTIC HTML)
   lines.push(`OUTPUT FORMAT:`);
@@ -229,7 +298,10 @@ export function buildReadyToPastePrompt(
   lines.push(`- Use <em> or <i> only when semantically appropriate.`);
   lines.push(`- Use <ul>/<ol>/<li> only when a list genuinely improves clarity.`);
   lines.push(`- Use <table> with semantic table elements (<thead>, <tbody>, <tr>, <th>, <td>) when a table is genuinely useful.`);
-  lines.push(`- Use <a href="..."> for internal links naturally embedded in paragraph text.`);
+  lines.push(`- Tables must have at most 3 columns.`);
+  lines.push(`- Use <a href="..."> for all internal and outbound links, naturally embedded in paragraph text.`);
+  lines.push(`- Never place links inside headings or table cells.`);
+  lines.push(`- The article must contain at least 2,000 words of body text.`);
   lines.push(`- Use <figure>, <img>, and <figcaption> only when valid image URLs are supplied.`);
   lines.push(`- Never invent image URLs.`);
   lines.push(`- Do not output Markdown.`);
@@ -267,10 +339,11 @@ export function buildReadyToPastePrompt(
   if (promptText.includes('STRUKTUR & HIERARKI ARTIKEL')) includedCount++;
   if (promptText.includes('BUKTI / EVIDENCE LAPANGAN')) includedCount++;
   if (promptText.includes('INFORMASI REFERENSI RESMI')) includedCount++;
-  if (promptText.includes('REKOMENDASI TAUTAN INTERNAL')) includedCount++;
+  if (promptText.includes('TAUTAN INTERNAL KONTEKSTUAL TAMBAHAN') || promptText.includes('REKOMENDASI TAUTAN INTERNAL')) includedCount++;
+  if (promptText.includes('TAUTAN WAJIB')) includedCount++;
+  if (promptText.includes('ATURAN WAJIB PENULISAN ARTIKEL')) includedCount++;
   if (promptText.includes('QUALITY GUARDRAILS')) includedCount++;
   if (promptText.includes('PERINGATAN SPESIFIK HALAMAN INI')) includedCount++;
-  if (promptText.includes('CONTOH GAYA TULISAN YANG HARUS DITIRU')) includedCount++;
   if (promptText.includes('HUMAN-LIKE EDITORIAL WRITING:')) includedCount++;
   if (promptText.includes('OUTPUT FORMAT:')) includedCount++;
 

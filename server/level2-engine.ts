@@ -2,6 +2,7 @@ import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import {
   KnownSiloPage,
   Level2Result,
+  PageLinkPlan,
   PageRole,
   RecommendedReferenceUsage,
   ReferenceSnippet,
@@ -26,8 +27,8 @@ export interface Level2Input {
   relatedPages?: string[];
   sourceLevel1Id?: string;
   referenceMaterials?: ReferenceSnippet[];
-  /** Contoh gaya tulisan asli pengguna dari Level 1 untuk ditiru nada dan ritmenya. */
-  writingVoiceSample?: string;
+  /** Rencana penautan deterministik (pilar <-> pendukung & outbound link). */
+  linkPlan?: PageLinkPlan;
   /** URL website utama (root domain), diteruskan dari Level 1. */
   websiteUrl?: string;
   /** Daftar seluruh halaman SILO (judul + slug asli) agar AI mencocokkan target internal link ke slug yang benar-benar ada, bukan menebak/menulis ulang. */
@@ -59,7 +60,7 @@ export async function generateLevel2Architecture(input: Level2Input): Promise<Le
     relatedPages = [],
     sourceLevel1Id,
     referenceMaterials = [],
-    writingVoiceSample,
+    linkPlan,
     websiteUrl,
     knownPages = [],
     targetAudience,
@@ -146,7 +147,7 @@ ${
             `  * "${p.title}" -> slug: "${p.slug}"${p.scopeSummary ? ` | Cakupan halaman ini: ${p.scopeSummary}` : ''}`
         )
         .join('\n') +
-      `\n\nPETUNJUK INTERNAL LINK (WAJIB): Untuk setiap item pada "internalLinkOpportunities", pilih "targetPage" HANYA dari daftar judul halaman di atas (gunakan judul persis seperti tertulis), lalu isi "targetSlug" dengan slug yang sesuai dari daftar tersebut. Jika tidak ada halaman yang cocok secara relevan, jangan sertakan item tersebut.\n\nPETUNJUK ANTI-KANIBALISASI (WAJIB): Gunakan kolom "Cakupan halaman ini" di atas sebagai SUMBER KEBENARAN saat menentukan excludedScope — jangan menebak hanya dari judul. Jika sebuah topik yang berpotensi tumpang tindih TIDAK disebutkan secara eksplisit dalam cakupan halaman tetangga manapun, JANGAN asumsikan sudah ditangani halaman lain — sertakan dalam includedScope halaman ini, atau laporkan sebagai potensi celah.`
+      `\n\nPETUNJUK INTERNAL LINK (WAJIB): Untuk setiap item pada "internalLinkOpportunities", pilih "targetPage" HANYA dari daftar judul halaman di atas (gunakan judul persis seperti tertulis), lalu isi "targetSlug" dengan slug yang sesuai dari daftar tersebut. Jika tidak ada halaman yang cocok secara relevan, jangan sertakan item tersebut. Catatan: tautan wajib pilar<->pendukung dan outbound link ditangani sistem secara terpisah. Pada internalLinkOpportunities, hanya berikan peluang tautan KONTEKSTUAL tambahan ke halaman SILO lain yang relevan, dan JANGAN sertakan halaman pilar maupun URL eksternal.\n\nPETUNJUK ANTI-KANIBALISASI (WAJIB): Gunakan kolom "Cakupan halaman ini" di atas sebagai SUMBER KEBENARAN saat menentukan excludedScope — jangan menebak hanya dari judul. Jika sebuah topik yang berpotensi tumpang tindih TIDAK disebutkan secara eksplisit dalam cakupan halaman tetangga manapun, JANGAN asumsikan sudah ditangani halaman lain — sertakan dalam includedScope halaman ini, atau laporkan sebagai potensi celah.`
     : ''
 }
 ${
@@ -483,7 +484,7 @@ ${
     recommendedReferenceUsage:
       validatedRecommendedUsage.length > 0 ? validatedRecommendedUsage : undefined,
     referenceMaterials: referenceMaterials.length > 0 ? referenceMaterials : undefined,
-    writingVoiceSample: writingVoiceSample?.trim() || undefined,
+    linkPlan: linkPlan ?? undefined,
     authorExpertise: authorExpertise?.trim() || undefined,
     peopleFirstQualityGuidance: parsed.peopleFirstQualityGuidance || [],
     searchEngineFirstWarnings: parsed.searchEngineFirstWarnings || [],

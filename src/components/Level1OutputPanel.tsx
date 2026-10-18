@@ -27,7 +27,9 @@ import {
   XCircle,
   Info,
   CornerDownRight,
+  ExternalLink,
 } from 'lucide-react';
+import { distributeOutboundLinks } from '../lib/outbound-links.ts';
 
 interface Level1OutputPanelProps {
   level1Result: Level1Result | null;
@@ -444,6 +446,69 @@ export const Level1OutputPanel: React.FC<Level1OutputPanelProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Ringkasan Distribusi Outbound Link (jika ada outbound link di Level 1) */}
+            {level1Result.outboundLinks && level1Result.outboundLinks.length > 0 && (() => {
+              const supportingPages = level1Result.siloPages.filter((p) => p.pageRole !== 'Pillar');
+              const linkDistribution = distributeOutboundLinks(
+                level1Result.outboundLinks,
+                supportingPages.map((p) => p.pageId)
+              );
+
+              return (
+                <div className="mb-5 p-4 bg-[#FFF9FA] border border-[#F1DDE2] rounded-xl space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-[#FE4C6F]" />
+                      <h5 className="font-bold text-xs text-[#1F1720]">
+                        Distribusi Outbound Link ({level1Result.outboundLinks.length} URL ke {supportingPages.length} Artikel Pendukung)
+                      </h5>
+                    </div>
+                    <span className="text-[10px] text-[#6F6670] bg-white px-2 py-0.5 rounded-md border border-[#F1DDE2]">
+                      Round-Robin • 1x per link
+                    </span>
+                  </div>
+
+                  {supportingPages.length === 0 ? (
+                    <p className="text-xs text-amber-700">
+                      Belum ada artikel pendukung untuk menerima outbound link.
+                    </p>
+                  ) : (
+                    <>
+                      {level1Result.outboundLinks.length < supportingPages.length && (
+                        <p className="text-[11px] text-[#6F6670]">
+                          Sebagian artikel pendukung tidak mendapat outbound link. Setiap link hanya dipakai satu kali.
+                        </p>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                        {supportingPages.map((sp) => {
+                          const count = linkDistribution[sp.pageId]?.length || 0;
+                          return (
+                            <div
+                              key={sp.pageId}
+                              className="p-2.5 bg-white border border-[#F1DDE2] rounded-lg flex items-center justify-between gap-2"
+                            >
+                              <span className="truncate text-[#1F1720] font-medium" title={sp.title}>
+                                {sp.title}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                                  count > 0
+                                    ? 'bg-[#FFE8EE] text-[#FE4C6F]'
+                                    : 'bg-gray-100 text-gray-500'
+                                }`}
+                              >
+                                {count} link
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {level1Result.siloPages.map((page) => {

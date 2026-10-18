@@ -462,11 +462,32 @@ export function createApp(): Express {
         authorExpertise,
         referenceText,
         manualSiloStructure,
-        writingVoiceSample,
+        outboundLinks,
         websiteUrl,
       } = req.body;
       if (!topic || topic.trim().length === 0) {
         return res.status(400).json({ success: false, error: 'Topik wajib diisi', requestId });
+      }
+
+      // Validasi server-side outboundLinks: array, string, valid http/https, buang duplikat, pertahankan urutan
+      let sanitizedOutboundLinks: string[] = [];
+      if (Array.isArray(outboundLinks)) {
+        const seen = new Set<string>();
+        for (const item of outboundLinks) {
+          if (typeof item === 'string') {
+            const trimmed = item.trim();
+            if (!trimmed) continue;
+            try {
+              const u = new URL(trimmed);
+              if ((u.protocol === 'http:' || u.protocol === 'https:') && !seen.has(trimmed)) {
+                seen.add(trimmed);
+                sanitizedOutboundLinks.push(trimmed);
+              }
+            } catch {
+              // Abaikan URL tidak valid
+            }
+          }
+        }
       }
 
       const result = await generateLevel1Architecture({
@@ -479,7 +500,7 @@ export function createApp(): Express {
         authorExpertise,
         referenceText,
         manualSiloStructure,
-        writingVoiceSample,
+        outboundLinks: sanitizedOutboundLinks,
         websiteUrl,
       });
 
@@ -521,7 +542,6 @@ export function createApp(): Express {
         location,
         authorExpertise,
         referenceText,
-        writingVoiceSample,
         websiteUrl,
         existingSiloPages,
         existingClusters,
@@ -559,7 +579,6 @@ export function createApp(): Express {
         location,
         authorExpertise,
         referenceText,
-        writingVoiceSample,
         websiteUrl,
         existingSiloPages: Array.isArray(existingSiloPages) ? existingSiloPages : [],
         existingClusters: Array.isArray(existingClusters) ? existingClusters : [],
@@ -605,7 +624,7 @@ export function createApp(): Express {
         relatedPages,
         sourceLevel1Id,
         referenceMaterials,
-        writingVoiceSample,
+        linkPlan,
         websiteUrl,
         knownPages,
         targetAudience,
@@ -638,7 +657,7 @@ export function createApp(): Express {
         relatedPages,
         sourceLevel1Id,
         referenceMaterials,
-        writingVoiceSample,
+        linkPlan,
         websiteUrl,
         knownPages,
         targetAudience,

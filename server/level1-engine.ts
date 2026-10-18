@@ -17,8 +17,8 @@ export interface Level1Input {
   referenceText?: string;
   /** Struktur SILO hasil riset manual pengguna sendiri (Pillar, kategori/cluster, judul halaman, slug opsional), format bebas (tree/bullet/daftar bertingkat). Jika terisi, AI TIDAK meriset struktur dari nol — AI hanya menyusun & melengkapi metadata teknis SEO mengikuti struktur ini apa adanya. */
   manualSiloStructure?: string;
-  /** Contoh gaya tulisan asli pengguna untuk ditiru gaya dan nadanya. */
-  writingVoiceSample?: string;
+  /** Daftar outbound link untuk artikel pendukung. */
+  outboundLinks?: string[];
   /** URL website utama (root domain), dipakai untuk menyusun internal link otomatis di Level 2. */
   websiteUrl?: string;
 }
@@ -34,7 +34,7 @@ export async function generateLevel1Architecture(input: Level1Input): Promise<Le
     authorExpertise,
     referenceText = '',
     manualSiloStructure = '',
-    writingVoiceSample = '',
+    outboundLinks = [],
     websiteUrl,
   } = input;
 
@@ -364,7 +364,7 @@ Persyaratan Detail:
     websiteUrl: normalizedWebsiteUrl,
     referenceNotes: referenceText.trim() || undefined,
     manualSiloStructure: manualSiloStructure.trim() || undefined,
-    writingVoiceSample: writingVoiceSample.trim() || undefined,
+    outboundLinks: outboundLinks.length > 0 ? outboundLinks : undefined,
     referenceMaterials: extractedReferenceMaterials.length > 0 ? extractedReferenceMaterials : undefined,
     knowledgeArchitecture: parsed.knowledgeArchitecture || [],
     clusters: parsed.clusters || [],

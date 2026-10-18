@@ -100,6 +100,27 @@ export interface InternalLinkRec {
   relationship: 'parent' | 'child' | 'sibling' | 'cross-cluster';
 }
 
+export interface LinkTarget {
+  title: string;
+  slug: string;
+  /** URL penuh. Jika websiteUrl kosong, berisi path relatif "/slug". */
+  url: string;
+  focusKeyword: string;
+  scopeSummary?: string;
+}
+
+export interface PageLinkPlan {
+  role: 'pillar' | 'supporting';
+  /** Hanya untuk role 'supporting': target link wajib ke artikel pilar. */
+  pillar?: LinkTarget;
+  /** Hanya untuk role 'pillar': SEMUA artikel pendukung yang wajib ditautkan. */
+  supportingTargets?: LinkTarget[];
+  /** Hanya untuk role 'supporting': jatah outbound link halaman ini. Bisa kosong. */
+  outboundLinks: string[];
+  /** true jika websiteUrl kosong sehingga URL internal memakai path relatif. */
+  websiteUrlMissing?: boolean;
+}
+
 /** Ringkasan halaman SILO (judul + slug) yang dikirim sebagai referensi ke Level 2, agar AI mencocokkan target link ke slug yang benar-benar ada. */
 export interface KnownSiloPage {
   title: string;
@@ -148,8 +169,10 @@ export interface Level1Result {
   referenceNotes?: string;
   /** Struktur SILO hasil riset manual pengguna sendiri (Pillar, kategori, judul halaman, slug), apa adanya seperti yang ditempel pengguna. Jika terisi, siloPages di bawah disusun mengikuti struktur ini, bukan hasil riset AI dari nol. */
   manualSiloStructure?: string;
-  /** Contoh gaya tulisan asli pengguna (2-3 paragraf) untuk ditiru nada dan ritmenya pada prompt artikel. */
+  /** @deprecated Tidak dipakai lagi. Dipertahankan agar history lama tetap terbaca. */
   writingVoiceSample?: string;
+  /** Daftar outbound link (sudah divalidasi & dibersihkan dari duplikat). Hanya dipakai untuk artikel pendukung. */
+  outboundLinks?: string[];
   /** Fakta-fakta yang diekstrak & distrukturkan oleh AI dari referenceNotes. */
   referenceMaterials?: ReferenceSnippet[];
   knowledgeArchitecture: KnowledgeNode[];
@@ -240,8 +263,10 @@ export interface Level2Result {
   }[];
   recommendedReferenceUsage?: RecommendedReferenceUsage[];
   referenceMaterials?: ReferenceSnippet[];
-  /** Contoh gaya tulisan asli pengguna dari Level 1 untuk ditiru nada dan ritmenya. */
+  /** @deprecated Tidak dipakai lagi. Dipertahankan agar history lama tetap terbaca. */
   writingVoiceSample?: string;
+  /** Rencana penautan deterministik (pilar <-> pendukung & jatah outbound link). Selalu masuk prompt. */
+  linkPlan?: PageLinkPlan;
   /** Latar belakang keahlian praktis/bisnis (E-E-A-T signal). */
   authorExpertise?: string;
   peopleFirstQualityGuidance: string[];

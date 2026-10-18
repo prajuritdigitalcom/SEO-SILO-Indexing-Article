@@ -36,6 +36,7 @@ import {
 } from './lib/history-storage.ts';
 import { readApiResponse } from './lib/api-client.ts';
 import { slugify } from './lib/slug-utils.ts';
+import { buildPageLinkPlan } from './lib/outbound-links.ts';
 
 const MAX_KEYWORDS_PER_BATCH = 5;
 
@@ -108,7 +109,7 @@ export default function App() {
     authorExpertise?: string;
     referenceText?: string;
     manualSiloStructure?: string;
-    writingVoiceSample?: string;
+    outboundLinks?: string[];
     websiteUrl?: string;
   }): Promise<Level1Result> => {
     // Check if user has keys but none are ready
@@ -215,6 +216,9 @@ export default function App() {
     setLvl2Loading(true);
     setActiveLevelMode('level2');
 
+    // Hitung rencana penautan deterministik (pilar <-> pendukung & pembagian merata outbound link)
+    const linkPlan = buildPageLinkPlan(page, level1Result);
+
     const maxAttempts = Math.max(2, visitorKeys.filter((k) => k.status === 'READY').length + 1);
     let lastError: any = null;
     let lastKeyRelatedError: any = null;
@@ -240,7 +244,7 @@ export default function App() {
               relatedPages: page.relatedPages,
               sourceLevel1Id: level1Result.id,
               referenceMaterials: level1Result.referenceMaterials || [],
-              writingVoiceSample: level1Result.writingVoiceSample,
+              linkPlan,
               websiteUrl: level1Result.websiteUrl,
               knownPages: level1Result.siloPages.map((p) => ({
                 title: p.title,
@@ -478,6 +482,11 @@ export default function App() {
       saveLocalHistoryItem(historyItem);
       refreshHistoryData();
     }
+
+    // Catatan: Setelah halaman dihapus, pembagian outbound link otomatis dihitung ulang
+    // untuk pembuatan Level 2 berikutnya karena buildPageLinkPlan dipanggil dinamis.
+    // Jika prompt sudah pernah digenerate sebelumnya, tandai sebagai outdated.
+    setPromptResult((prev) => (prev ? { ...prev, isOutdated: true } : null));
   };
 
   // Tambah Rancangan Halaman dari List Kata Kunci (maks 5 per proses)
@@ -529,7 +538,6 @@ export default function App() {
               location: level1Result.location,
               authorExpertise: level1Result.authorExpertise,
               referenceText: level1Result.referenceNotes,
-              writingVoiceSample: level1Result.writingVoiceSample,
               websiteUrl: level1Result.websiteUrl,
               existingSiloPages: level1Result.siloPages.map((p) => ({
                 pageId: p.pageId,
@@ -607,6 +615,13 @@ export default function App() {
             };
             saveLocalHistoryItem(historyItem);
             refreshHistoryData();
+          }
+
+          // Catatan: Setelah halaman baru ditambahkan, pembagian outbound link otomatis dihitung ulang
+          // untuk pembuatan Level 2 berikutnya karena buildPageLinkPlan dipanggil dinamis.
+          // Jika prompt sudah pernah digenerate sebelumnya, tandai sebagai outdated.
+          if (newPages.length > 0) {
+            setPromptResult((prev) => (prev ? { ...prev, isOutdated: true } : null));
           }
 
           refreshKeyPoolData();

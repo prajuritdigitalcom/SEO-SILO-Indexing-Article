@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Level1Result, WebsiteType } from '../types.ts';
+import { parseOutboundLinks } from '../lib/outbound-links.ts';
 import {
   Sparkles,
   Layers,
@@ -10,7 +11,7 @@ import {
   MapPin,
   CheckCircle2,
   BookOpen,
-  FileText,
+  ExternalLink,
   Briefcase,
 } from 'lucide-react';
 
@@ -24,7 +25,7 @@ interface Level1WorkspaceProps {
     authorExpertise?: string;
     referenceText?: string;
     manualSiloStructure?: string;
-    writingVoiceSample?: string;
+    outboundLinks?: string[];
     websiteUrl?: string;
   }) => Promise<Level1Result>;
   loading: boolean;
@@ -42,7 +43,7 @@ export const Level1Workspace: React.FC<Level1WorkspaceProps> = ({
   const [authorExpertise, setAuthorExpertise] = useState('');
   const [referenceText, setReferenceText] = useState('');
   const [manualSiloStructure, setManualSiloStructure] = useState('');
-  const [writingVoiceSample, setWritingVoiceSample] = useState('');
+  const [outboundLinksText, setOutboundLinksText] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
 
   const presetTopics: Array<{
@@ -131,9 +132,18 @@ Integrasi absensi biometrik mesin sidik jari & GPS mobile selfie anti-fake GPS. 
     setReferenceText(preset.referenceText);
   };
 
+  const parsedOutbound = parseOutboundLinks(outboundLinksText);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
+
+    if (parsedOutbound.invalid.length > 0) {
+      alert(
+        `Terdapat ${parsedOutbound.invalid.length} baris Outbound Link yang tidak valid:\n${parsedOutbound.invalid.slice(0, 5).join('\n')}${parsedOutbound.invalid.length > 5 ? '\n...dan lainnya' : ''}\n\nPastikan setiap link diawali http:// atau https:// sebelum melanjutkan.`
+      );
+      return;
+    }
 
     try {
       await onGenerateLevel1({
@@ -145,7 +155,7 @@ Integrasi absensi biometrik mesin sidik jari & GPS mobile selfie anti-fake GPS. 
         authorExpertise: authorExpertise.trim() || undefined,
         referenceText: referenceText.trim() || undefined,
         manualSiloStructure: manualSiloStructure.trim() || undefined,
-        writingVoiceSample: writingVoiceSample.trim() || undefined,
+        outboundLinks: parsedOutbound.valid.length > 0 ? parsedOutbound.valid : undefined,
         websiteUrl: websiteUrl.trim() || undefined,
       });
     } catch (err: any) {
@@ -207,6 +217,14 @@ Integrasi absensi biometrik mesin sidik jari & GPS mobile selfie anti-fake GPS. 
                 placeholder="https://contohdomain.com"
                 className="w-full px-3.5 py-2.5 bg-white border border-[#F1DDE2] rounded-xl text-xs focus:outline-hidden focus:border-[#FE4C6F] focus:ring-1 focus:ring-[#FE4C6F] text-[#1F1720] transition-colors"
               />
+              <p className="text-[10px] text-[#6F6670] mt-1">
+                Wajib diisi agar link pilar &lt;-&gt; pendukung memakai URL lengkap.
+              </p>
+              {parsedOutbound.valid.length > 0 && !websiteUrl.trim() && (
+                <p className="text-[10px] text-amber-700 mt-0.5">
+                  Perhatian: URL Website belum diisi. Tautan internal akan memakai path relatif (/slug).
+                </p>
+              )}
             </div>
 
             {/* Baris 1 - Kolom 3: Tipe Website */}
@@ -339,23 +357,39 @@ Integrasi absensi biometrik mesin sidik jari & GPS mobile selfie anti-fake GPS. 
                 </p>
               </div>
 
-              {/* Kolom 3: Contoh Gaya Tulisan / Writing Voice Sample */}
+              {/* Kolom 3: Outbound Link */}
               <div className="flex flex-col">
                 <label className="block text-xs font-bold text-[#1F1720] mb-1.5 flex items-center gap-1.5 min-h-[20px]">
-                  <FileText className="w-3.5 h-3.5 text-[#FE4C6F]" />
-                  <span className="truncate" title="Contoh Gaya Tulisan / Writing Voice Sample (Opsional)">
-                    Gaya Tulisan / Voice Sample (Opsional)
+                  <ExternalLink className="w-3.5 h-3.5 text-[#FE4C6F]" />
+                  <span className="truncate" title="Outbound Link (Opsional)">
+                    Outbound Link (Opsional)
                   </span>
                 </label>
                 <textarea
                   rows={4}
-                  value={writingVoiceSample}
-                  onChange={(e) => setWritingVoiceSample(e.target.value)}
-                  placeholder="Contoh: Tempelkan 2-3 paragraf tulisan asli yang sudah dipublikasikan agar AI meniru ritme kalimat & gaya tutur brand Anda."
-                  className="w-full flex-1 px-3 py-2 bg-white border border-[#F1DDE2] rounded-xl text-xs focus:outline-hidden focus:border-[#FE4C6F] focus:ring-1 focus:ring-[#FE4C6F] text-[#1F1720] leading-relaxed resize-none h-28"
+                  value={outboundLinksText}
+                  onChange={(e) => setOutboundLinksText(e.target.value)}
+                  placeholder={`https://contoh.com/artikel-1\nhttps://contoh.com/artikel-2\nhttps://contoh.com/artikel-3`}
+                  className="w-full flex-1 px-3 py-2 bg-white border border-[#F1DDE2] rounded-xl text-xs font-mono focus:outline-hidden focus:border-[#FE4C6F] focus:ring-1 focus:ring-[#FE4C6F] text-[#1F1720] leading-relaxed resize-none h-28"
                 />
                 <p className="text-[10px] text-[#6F6670] mt-1.5 line-clamp-2">
-                  Acuan nada & gaya bahasa saat merangkai prompt di Level 2.
+                  {outboundLinksText.trim().length === 0 ? (
+                    'Satu link per baris. Hanya dimasukkan ke artikel pendukung, tidak ke artikel pilar.'
+                  ) : (
+                    <span>
+                      {parsedOutbound.valid.length} link valid siap dibagi merata ke artikel pendukung
+                      {parsedOutbound.invalid.length > 0 && (
+                        <span className="text-rose-600 font-semibold">
+                          , {parsedOutbound.invalid.length} baris tidak valid
+                        </span>
+                      )}
+                      {parsedOutbound.duplicateCount > 0 && (
+                        <span className="text-amber-600 font-semibold">
+                          , {parsedOutbound.duplicateCount} duplikat dibuang
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
