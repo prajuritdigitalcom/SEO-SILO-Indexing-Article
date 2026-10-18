@@ -72,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Prajurit Digital
               </h1>
               <p className="text-[11px] text-[#6F6670] font-medium truncate">
-                SILO & SEO Architect
+                SILO Indexing Builder
               </p>
             </div>
           )}
