@@ -121,3 +121,25 @@ export function buildPageLinkPlan(
     websiteUrlMissing: !baseUrl,
   };
 }
+
+/**
+ * Menghasilkan petunjuk topik bersih dari URL (mengabaikan nomor telepon dan ID angka panjang).
+ */
+export function deriveUrlTopicHint(url: string): string {
+  try {
+    const u = new URL(url);
+    const segs = u.pathname.split('/').filter(Boolean);
+    const seg = [...segs].reverse().find((s) => /[a-zA-Z]{3,}/.test(s)) || '';
+    const tokens = decodeURIComponent(seg)
+      .replace(/\.(html?|php|aspx?)$/i, '')
+      .split(/[-_]+/)
+      .filter(Boolean);
+    while (tokens.length && /^\d+$/.test(tokens[0])) tokens.shift();
+    while (tokens.length && /^\d{5,}$/.test(tokens[tokens.length - 1])) tokens.pop();
+    const hint = tokens.join(' ').trim();
+    return hint || u.hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+

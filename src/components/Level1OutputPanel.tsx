@@ -510,10 +510,22 @@ export const Level1OutputPanel: React.FC<Level1OutputPanelProps> = ({
               );
             })()}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {level1Result.siloPages.map((page) => {
-                const isPillar = page.pageRole === 'Pillar';
-                return (
+            {(() => {
+              const supportingPages = level1Result.siloPages.filter((p) => p.pageRole !== 'Pillar');
+              const cardLinkDistribution =
+                level1Result.outboundLinks && level1Result.outboundLinks.length > 0
+                  ? distributeOutboundLinks(
+                      level1Result.outboundLinks,
+                      supportingPages.map((p) => p.pageId)
+                    )
+                  : {};
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {level1Result.siloPages.map((page) => {
+                    const isPillar = page.pageRole === 'Pillar';
+                    const pageOutbound = cardLinkDistribution[page.pageId] || [];
+                    return (
                   <div
                     key={page.pageId}
                     className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
@@ -656,6 +668,45 @@ export const Level1OutputPanel: React.FC<Level1OutputPanelProps> = ({
                           <strong>Primary Entity:</strong> {page.primaryEntity}
                         </div>
                       </div>
+
+                      {/* Outbound Link Info on Card */}
+                      {level1Result.outboundLinks && level1Result.outboundLinks.length > 0 && (
+                        <div className="pt-2 border-t border-[#F1DDE2]/60 text-[11px] space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-[#1F1720] flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3 text-[#FE4C6F]" />
+                              Outbound Link:
+                            </span>
+                            {isPillar ? (
+                              <span className="text-[10px] text-gray-400 italic">0 link (Pilar)</span>
+                            ) : (
+                              <span
+                                className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${
+                                  pageOutbound.length > 0
+                                    ? 'bg-[#FFE8EE] text-[#FE4C6F]'
+                                    : 'bg-gray-100 text-gray-500'
+                                }`}
+                              >
+                                {pageOutbound.length} link
+                              </span>
+                            )}
+                          </div>
+                          {!isPillar && pageOutbound.length > 0 && (
+                            <div className="space-y-1 pt-0.5 max-h-16 overflow-y-auto">
+                              {pageOutbound.map((url, uIdx) => (
+                                <div
+                                  key={uIdx}
+                                  className="text-[10px] font-mono text-[#6F6670] truncate flex items-center gap-1"
+                                  title={url}
+                                >
+                                  <span className="text-[#FE4C6F] shrink-0">•</span>
+                                  <span className="truncate">{url}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -669,6 +720,8 @@ export const Level1OutputPanel: React.FC<Level1OutputPanelProps> = ({
                 );
               })}
             </div>
+          );
+        })()}
           </div>
         </div>
       )}
