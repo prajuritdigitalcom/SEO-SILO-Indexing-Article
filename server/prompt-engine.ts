@@ -4,6 +4,10 @@ import {
   Level2Result,
   ReferenceSnippet,
 } from '../src/types.js';
+import {
+  buildOutboundListLines,
+  buildOutboundPlacementLines,
+} from './outbound-prompt.js';
 
 export function buildReadyToPastePrompt(
   data: Level2Result,
@@ -102,16 +106,16 @@ export function buildReadyToPastePrompt(
     sectionsToInclude.forEach((sec, idx) => {
       lines.push(`\n${idx + 1}. [${sec.level}] ${sec.heading}`);
       lines.push(`   • Tujuan Seksi: ${sec.purpose}`);
-      if (sec.mustExplain.length > 0) {
+      if (sec.mustExplain && sec.mustExplain.length > 0) {
         lines.push(`   • Poin Wajib Dijelaskan: ${sec.mustExplain.join('; ')}`);
       }
-      if (sec.questions.length > 0) {
+      if (sec.questions && sec.questions.length > 0) {
         lines.push(`   • Pertanyaan Pembaca: ${sec.questions.join('; ')}`);
       }
-      if (sec.entities.length > 0) {
+      if (sec.entities && sec.entities.length > 0) {
         lines.push(`   • Istilah/Entitas Relevan: ${sec.entities.join(', ')}`);
       }
-      if (sec.evidenceRequirements.length > 0) {
+      if (sec.evidenceRequirements && sec.evidenceRequirements.length > 0) {
         lines.push(`   • Bukti/Data yang Disarankan: ${sec.evidenceRequirements.join('; ')}`);
       }
     });
@@ -196,21 +200,14 @@ export function buildReadyToPastePrompt(
         lines.push(`   Judul pilar: "${data.linkPlan.pillar.title}" | href: ${data.linkPlan.pillar.url} | Kata kunci: ${data.linkPlan.pillar.focusKeyword}`);
         lines.push(`   - Tautkan minimal 1 kali, maksimal 2 kali. Letakkan tautan pertama di paruh awal artikel (maksimal sebelum seksi H2 ketiga).`);
         lines.push(`   - href persis seperti tertulis.`);
+        lines.push(``);
       }
-      lines.push(`B. OUTBOUND LINK (WAJIB dimasukkan SEMUA, total ${outbound.length} link):`);
       if (outbound.length > 0) {
-        outbound.forEach((url, idx) => {
-          lines.push(`   ${idx + 1}. ${url}`);
-        });
-        lines.push(`   Aturan:`);
-        lines.push(`   - Setiap URL dimasukkan TEPAT SATU KALI, href persis seperti tertulis (jangan diubah, jangan ditambah parameter, jangan dipendekkan).`);
-        lines.push(`   - Jangan menambahkan atribut rel="nofollow", rel="sponsored", atau rel="ugc". Gunakan <a href="..." target="_blank" rel="noopener">.`);
-        lines.push(`   - Jangan mengarang isi halaman tujuan. Anda tidak dapat membuka URL tersebut. Tentukan topik tautan HANYA dari kata-kata pada URL (domain dan slug), lalu tulis kalimat pengantar yang netral dan relevan (misalnya "sebagai bacaan lanjutan tentang ..."), tanpa klaim spesifik tentang isi halaman tujuan.`);
-        lines.push(`   - Sebar outbound link di seksi yang berbeda. Jangan menumpuk lebih dari 1 outbound link dalam satu paragraf.`);
+        lines.push(...buildOutboundListLines(outbound));
       } else {
-        lines.push(`   Artikel ini tidak memiliki jatah outbound link. Jangan menambahkan tautan ke website luar apa pun.`);
+        lines.push(`B. OUTBOUND LINK:`);
+        lines.push(`   Artikel ini tidak memiliki jatah outbound link. Jangan menambahkan tautan ke website luar apa pun.\n`);
       }
-      lines.push(`   Jangan menambahkan outbound link lain di luar daftar ini.\n`);
     }
   }
 
@@ -341,6 +338,14 @@ export function buildReadyToPastePrompt(
   lines.push(`Do not invent experiences, data, studies, numbers, sources, or claims.`);
   lines.push(`Ensure the final output is pure, clean semantic HTML ready to publish on Blogger or WordPress.`);
 
+  // ATURAN PENEMPATAN OUTBOUND LINK (Ditaruh di AKHIR prompt agar prioritas tertinggi)
+  if (data.linkPlan && data.linkPlan.role !== 'pillar') {
+    const outbound = data.linkPlan.outboundLinks || [];
+    if (outbound.length > 0) {
+      lines.push(...buildOutboundPlacementLines(outbound));
+    }
+  }
+
   const promptText = lines.join('\n');
 
   let includedCount = 0;
@@ -360,6 +365,7 @@ export function buildReadyToPastePrompt(
   if (promptText.includes('PERINGATAN SPESIFIK HALAMAN INI')) includedCount++;
   if (promptText.includes('HUMAN-LIKE EDITORIAL WRITING:')) includedCount++;
   if (promptText.includes('OUTPUT FORMAT:')) includedCount++;
+  if (promptText.includes('ATURAN PENEMPATAN OUTBOUND LINK')) includedCount++;
 
   // P0 (§3.4): Hitung missingCount dinamis untuk komponen riset yang tersedia namun dimatikan oleh user
   let missingCount = 0;

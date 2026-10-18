@@ -25,6 +25,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { SeoMetadataPanel } from './SeoMetadataPanel';
+import { deriveUrlTopicHint } from '../lib/outbound-links.js';
 
 interface Level2WorkspaceProps {
   level2Data: Level2Result | null;
@@ -660,15 +661,25 @@ export const Level2Workspace: React.FC<Level2WorkspaceProps> = ({
                     </span>
                     {level2Data.linkPlan.outboundLinks.length > 0 ? (
                       <div className="space-y-1.5">
-                        {level2Data.linkPlan.outboundLinks.map((url, idx) => (
-                          <div
-                            key={idx}
-                            className="p-2 bg-[#FFF9FA] border border-[#F1DDE2] rounded-lg font-mono text-[11px] text-[#1F1720] flex items-center gap-2 break-all"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 text-[#FE4C6F] shrink-0" />
-                            <span>{url}</span>
-                          </div>
-                        ))}
+                        {level2Data.linkPlan.outboundLinks.map((url, idx) => {
+                          const hint = deriveUrlTopicHint(url);
+                          return (
+                            <div
+                              key={idx}
+                              className="p-2 bg-[#FFF9FA] border border-[#F1DDE2] rounded-lg text-[11px] text-[#1F1720] flex flex-col gap-1 break-all"
+                            >
+                              <div className="flex items-center gap-2 font-mono">
+                                <ExternalLink className="w-3.5 h-3.5 text-[#FE4C6F] shrink-0" />
+                                <span className="font-medium text-[#1F1720]">{url}</span>
+                              </div>
+                              {hint && (
+                                <div className="text-[10px] text-[#6F6670] pl-5 flex items-center gap-1">
+                                  <span className="font-semibold text-[#FE4C6F]">Petunjuk Topik:</span> {hint}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-[#6F6670] italic">Tidak ada jatah outbound link untuk artikel ini.</p>
